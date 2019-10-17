@@ -89,6 +89,7 @@ while True:
 
 import socket
 import struct
+import hashlib
 
 
 class GLOBALES:
@@ -100,11 +101,18 @@ class GLOBALES:
     sock = None
 
 
-def iniciarCliente():
+def sendConfig():
     GLOBALES.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     GLOBALES.sock.connect((GLOBALES.HOST_SERVER, GLOBALES.PORT_SERVER))
-    GLOBALES.sock.sendall(b'ready')
 
+
+def send(data):
+    GLOBALES.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    GLOBALES.sock.connect((GLOBALES.HOST_SERVER, GLOBALES.PORT_SERVER))
+    GLOBALES.sock.sendall(data)
+
+
+def receiveConfig():
     GLOBALES.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     GLOBALES.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     if GLOBALES.IS_ALL_GROUPS:
@@ -116,22 +124,59 @@ def iniciarCliente():
     mreq = struct.pack("4sl", socket.inet_aton(GLOBALES.MCAST_GRP), socket.INADDR_ANY)
 
     GLOBALES.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
+
+def receive(chunk_size):
+    data, address = GLOBALES.sock.recvfrom(chunk_size)
+    return data, address
+
+
+def hashVerification(server_hash):
+    with open('./archivos/Datos.txt', 'rb') as file:
+        client_hash = hashlib.sha1(file.read()).digest()
+        return client_hash == server_hash[5:]
+
+def iniciarCliente():
+    sendConfig()
+    send(b'ready')
+
     print("Listo para Leer")
-    GLOBALES.sock.settimeout(10)
-    data, address = GLOBALES.sock.recvfrom(2048)
+    receiveConfig()
+    GLOBALES.sock.settimeout(5)
+    fragmentos, address = receive(65535)
+    print("Cantidad de Fragmentos: " + fragmentos.decode('utf-8'))
     print("Sali de leer")
     i = 0
     with open('./archivos/Datos.txt', 'wb') as file:
+        data, address = receive(65535)
         print("Escribiendo")
         while data:
             i += 1
             file.write(data)
             try:
-                data = GLOBALES.sock.recv(2048)
+                data = receive(65535)
             except socket.error:
                 data = None
         print("Sali de Escribir")
     print("Paquetes recibidos: " + str(i))
+
+    sendConfig()
+    send(b'hash')
+
+    receiveConfig()
+    GLOBALES.sock.settimeout(5)
+    hash, address = receive(4096)
+    if b'hash:' in hash:
+        print("Enviando respuesta del hash")
+        verification = hashVerification(hash)
+        message = b'envio:correcto estado:incorrecto'
+        if verification:
+            message = b'envio:correcto estado:correcto'
+        sendConfig()
+        send(message)
+    print("Termine")
+
+
 
 
 iniciarCliente()

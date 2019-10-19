@@ -4,11 +4,10 @@ import queue
 import socket
 import struct
 import hashlib
-import time
 cola = queue.Queue()
 
 
-class GLOBALES:
+class Variables:
     MCAST_GRP = '224.1.1.1'
     MCAST_PORT = 5007
     HOST_SERVER = '127.0.0.1'
@@ -21,42 +20,42 @@ class GLOBALES:
 
 
 def send_config():
-    GLOBALES.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    GLOBALES.sock.connect((GLOBALES.HOST_SERVER, GLOBALES.PORT_SERVER))
+    Variables.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    Variables.sock.connect((Variables.HOST_SERVER, Variables.PORT_SERVER))
 
 
 def send(data):
-    GLOBALES.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    GLOBALES.sock.connect((GLOBALES.HOST_SERVER, GLOBALES.PORT_SERVER))
-    GLOBALES.sock.sendall(data)
+    Variables.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    Variables.sock.connect((Variables.HOST_SERVER, Variables.PORT_SERVER))
+    Variables.sock.sendall(data)
 
 
 def receive_config():
-    GLOBALES.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    GLOBALES.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    if GLOBALES.IS_ALL_GROUPS:
+    Variables.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    Variables.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    if Variables.IS_ALL_GROUPS:
         # on this port, receives ALL multicast groups
-        GLOBALES.sock.bind(('', GLOBALES.MCAST_PORT))
+        Variables.sock.bind(('', Variables.MCAST_PORT))
     else:
         # on this port, listen ONLY to MCAST_GRP
-        GLOBALES.sock.bind((GLOBALES.MCAST_GRP, GLOBALES.MCAST_PORT))
-    mreq = struct.pack("4sl", socket.inet_aton(GLOBALES.MCAST_GRP), socket.INADDR_ANY)
+        Variables.sock.bind((Variables.MCAST_GRP, Variables.MCAST_PORT))
+    mreq = struct.pack("4sl", socket.inet_aton(Variables.MCAST_GRP), socket.INADDR_ANY)
 
-    GLOBALES.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+    Variables.sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 
 
 def receive(chunk_size):
-    data, address = GLOBALES.sock.recvfrom(chunk_size)
+    data, address = Variables.sock.recvfrom(chunk_size)
     return data, address
 
 
 def hash_verification(server_hash):
-    with open(GLOBALES.fileName, 'rb') as file:
+    with open(Variables.fileName, 'rb') as file:
         client_hash = hashlib.sha1(file.read()).digest()
         return client_hash == server_hash[5:]
 
 
-def iniciar_cliente():
+def start_client():
     send_config()
     send(b'ready')
 
@@ -66,14 +65,14 @@ def iniciar_cliente():
     if b'fileName' in info:
         info_string = info.decode('utf-8')
         index = info_string.find('fragmentos')
-        GLOBALES.fileName = './archivos/' + info_string[9:index]
+        Variables.fileName = './archivos/' + info_string[9:index]
         print("Nombre archivo: " + info_string[9:index])
         print("Cantidad de Fragmentos: " + info_string[index+11:])
     print("Sali de leer info")
     i = 0
-    with open(GLOBALES.fileName, 'wb') as file:
+    with open(Variables.fileName, 'wb') as file:
         data, address = receive(65507)
-        GLOBALES.sock.settimeout(5)
+        Variables.sock.settimeout(5)
         print("Escribiendo")
         while data:
             i += 1
@@ -89,15 +88,15 @@ def iniciar_cliente():
     send(b'hash')
 
     receive_config()
-    GLOBALES.sock.settimeout(5)
+    Variables.sock.settimeout(5)
     hash, address = receive(4096)
     if b'hash:' in hash:
         print("Enviando respuesta del hash")
         verification = hash_verification(hash)
         message = b'envio:correcto estado:incorrecto'
-        GLOBALES.integrity = 'incorrecto'
+        Variables.integrity = 'incorrecto'
         if verification:
-            GLOBALES.integrity = 'correcto'
+            Variables.integrity = 'correcto'
             message = b'envio:correcto estado:correcto'
         send_config()
         send(message)
@@ -106,7 +105,7 @@ def iniciar_cliente():
 
 
 def procesar():
-    iniciar_cliente()
+    start_client()
 
 
 raiz = Tk()
@@ -154,7 +153,7 @@ while True:
     raiz.update()
     if cola.empty() is not True:
         cola.get()
-        estado.set("Archivo Recibido: " + GLOBALES.fileName[11:])
+        estado.set("Archivo Recibido: " + Variables.fileName[11:])
         estadoEnvio.set("Estado del Envio: Recibido")
-        estadoHash.set("Integridad del archivo: " + GLOBALES.integrity)
+        estadoHash.set("Integridad del archivo: " + Variables.integrity)
         botonListo.config(state='normal')

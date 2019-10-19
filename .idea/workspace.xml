@@ -2,8 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1be5f49c-bdda-4de2-b46e-853378ecab23" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cliente/cliente.py" beforeDir="false" afterPath="$PROJECT_DIR$/Cliente/cliente.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Servidor/servidor.py" beforeDir="false" afterPath="$PROJECT_DIR$/Servidor/servidor.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -14,35 +12,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/PycharmProjects/FTP_Redes/Servidor/servidor.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2057">
-              <caret line="128" column="58" selection-start-line="128" selection-start-column="58" selection-end-line="128" selection-end-column="58" />
-              <folding>
-                <element signature="e#0#13#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/PycharmProjects/FTP_Redes/Cliente/cliente.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-957">
-              <caret line="102" column="29" selection-start-line="102" selection-start-column="29" selection-end-line="102" selection-end-column="29" />
-              <folding>
-                <element signature="e#0#13#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/Servidor/servidor.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="318">
-              <caret line="113" column="9" selection-start-line="113" selection-start-column="9" selection-end-line="113" selection-end-column="9" />
+            <state relative-caret-position="391">
+              <caret line="23" lean-forward="true" selection-start-line="23" selection-end-line="23" />
               <folding>
                 <element signature="e#0#13#0" expanded="true" />
               </folding>
@@ -50,14 +24,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Cliente/cliente.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="165">
-              <caret line="117" lean-forward="true" selection-start-line="117" selection-end-line="117" />
-              <folding>
-                <element signature="e#1#22#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="51">
+              <caret line="9" lean-forward="true" selection-start-line="9" selection-end-line="9" />
             </state>
           </provider>
         </entry>
@@ -71,9 +42,9 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$USER_HOME$/PycharmProjects/FTP_Redes/Servidor/servidor.py" />
-        <option value="$PROJECT_DIR$/Servidor/servidor.py" />
         <option value="$PROJECT_DIR$/Cliente2/cliente.py" />
         <option value="$PROJECT_DIR$/Cliente/cliente.py" />
+        <option value="$PROJECT_DIR$/Servidor/servidor.py" />
       </list>
     </option>
   </component>
@@ -95,11 +66,6 @@
             <path>
               <item name="UDP_Redes" type="b2602c69:ProjectViewProjectNode" />
               <item name="UDP_Redes" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="UDP_Redes" type="b2602c69:ProjectViewProjectNode" />
-              <item name="UDP_Redes" type="462c0819:PsiDirectoryNode" />
-              <item name="Cliente2" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -197,13 +163,14 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-7" y="-7" width="1550" height="838" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.22670192" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.3286119" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.2407932" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.2407932" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -219,9 +186,23 @@
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/../FTP_Redes/Servidor/servidor.py" />
+    <entry file="file://$PROJECT_DIR$/Cliente2/cliente.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="170">
+          <caret line="160" column="10" selection-start-line="160" selection-start-column="10" selection-end-line="160" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Cliente/cliente.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="51">
+          <caret line="9" lean-forward="true" selection-start-line="9" selection-end-line="9" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$USER_HOME$/PycharmProjects/FTP_Redes/Servidor/servidor.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2057">
+        <state relative-caret-position="306">
           <caret line="128" column="58" selection-start-line="128" selection-start-column="58" selection-end-line="128" selection-end-column="58" />
           <folding>
             <element signature="e#0#13#0" expanded="true" />
@@ -241,27 +222,10 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/Servidor/servidor.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="318">
-          <caret line="113" column="9" selection-start-line="113" selection-start-column="9" selection-end-line="113" selection-end-column="9" />
+        <state relative-caret-position="391">
+          <caret line="23" lean-forward="true" selection-start-line="23" selection-end-line="23" />
           <folding>
             <element signature="e#0#13#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Cliente2/cliente.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="170">
-          <caret line="160" column="10" selection-start-line="160" selection-start-column="10" selection-end-line="160" selection-end-column="10" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Cliente/cliente.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="165">
-          <caret line="117" lean-forward="true" selection-start-line="117" selection-end-line="117" />
-          <folding>
-            <element signature="e#1#22#0" expanded="true" />
           </folding>
         </state>
       </provider>

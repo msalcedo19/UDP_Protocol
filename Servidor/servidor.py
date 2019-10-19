@@ -4,7 +4,7 @@ import math
 import hashlib
 
 
-class GLOBALES:
+class Variables:
     cantidadClientesListos = 0
     cantidadClientesEnviar = 0
     clientesListos = False
@@ -20,7 +20,7 @@ class GLOBALES:
     path_file = None
     sizeFile = 0
     fileName = ""
-    archivoEnviado = False
+    file_sent = False
 
 
 def send_config():
@@ -29,18 +29,18 @@ def send_config():
     # for all packets sent, after two hops on the network the packet will not
     # be re-sent/broadcast (see https://www.tldp.org/HOWTO/Multicast-HOWTO-6.html)
     MULTICAST_TTL = 2
-    GLOBALES.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    GLOBALES.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, MULTICAST_TTL)
+    Variables.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    Variables.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, MULTICAST_TTL)
 
 
 def send(data):
-    GLOBALES.sock.sendto(data, (GLOBALES.MCAST_GRP, GLOBALES.MCAST_PORT))
+    Variables.sock.sendto(data, (Variables.MCAST_GRP, Variables.MCAST_PORT))
 
 
 def receive_config():
-    GLOBALES.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    GLOBALES.sock.bind((GLOBALES.HOST, GLOBALES.PORT))
-    GLOBALES.sock.listen()
+    Variables.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    Variables.sock.bind((Variables.HOST, Variables.PORT))
+    Variables.sock.listen()
 
 
 def receive(conn, chunk_size):
@@ -55,72 +55,71 @@ def server_config():
         print("2. Libro.epub")
         archivo = int(input(""))
         if archivo == 1:
-            GLOBALES.path_file = './archivos/Datos.txt'
-            GLOBALES.sizeFile = (os.path.getsize('./archivos/Datos.txt'))
-            GLOBALES.fileName = "Datos.txt"
+            Variables.path_file = './archivos/Datos.txt'
+            Variables.sizeFile = (os.path.getsize('./archivos/Datos.txt'))
+            Variables.fileName = "Datos.txt"
             eligio = True
         elif archivo == 2:
-            GLOBALES.path_file = './archivos/Libro.epub'
-            GLOBALES.sizeFile = (os.path.getsize('./archivos/Libro.epub'))
-            GLOBALES.fileName = "Libro.epub"
+            Variables.path_file = './archivos/Libro.epub'
+            Variables.sizeFile = (os.path.getsize('./archivos/Libro.epub'))
+            Variables.fileName = "Libro.epub"
             eligio = True
         else:
             print("No existe ese archivo")
-    GLOBALES.cantidadClientesEnviar = int(input("Ingrese a cuantos clientes en simultaneo desea enviar el archivo \n"))
+    Variables.cantidadClientesEnviar = int(input("Ingrese a cuantos clientes en simultaneo desea enviar el archivo \n"))
 
-    GLOBALES.fragmentsQuantity = math.ceil(GLOBALES.sizeFile / 65000)
-    GLOBALES.CHUNK_SIZE = math.ceil(GLOBALES.sizeFile / GLOBALES.fragmentsQuantity)
+    Variables.fragmentsQuantity = math.ceil(Variables.sizeFile / 65000)
+    Variables.CHUNK_SIZE = math.ceil(Variables.sizeFile / Variables.fragmentsQuantity)
 
 
-def iniciar_server():
+def start_server():
     receive_config()
     configurar = True
     while True:
-        if GLOBALES.clientesListos is False:
+        if Variables.clientesListos is False:
             if configurar:
                 server_config()
                 configurar = False
             print("Recibiendo Conexiones")
-            conn, addr = GLOBALES.sock.accept()
+            conn, addr = Variables.sock.accept()
             data = receive(conn, 2048)
             if data == b'ready':
-                GLOBALES.cantidadClientesListos += 1
-            if GLOBALES.cantidadClientesEnviar == GLOBALES.cantidadClientesListos:
-                GLOBALES.clientesListos = True
+                Variables.cantidadClientesListos += 1
+            if Variables.cantidadClientesEnviar == Variables.cantidadClientesListos:
+                Variables.clientesListos = True
                 print("Clientes listos")
-        elif GLOBALES.archivoEnviado is False:
-            print("Listo para transmitir")
+        elif Variables.file_sent is False:
             send_config()
-            send(str('fileName:' + GLOBALES.fileName + ' fragmentos:' + str(GLOBALES.fragmentsQuantity)).encode('utf-8'))
+            send(str('fileName:' + Variables.fileName + ' fragmentos:' + str(Variables.fragmentsQuantity)).encode('utf-8'))
 
             i = 0
-            with open(GLOBALES.path_file, "rb") as file:
-                data = file.read(GLOBALES.CHUNK_SIZE)
-                print("Enviando")
+            with open(Variables.path_file, "rb") as file:
+                data = file.read(Variables.CHUNK_SIZE)
+                print("Enviando...")
                 while data:
                     i += 1
                     send(data)
-                    data = file.read(GLOBALES.CHUNK_SIZE)
-                GLOBALES.archivoEnviado = True
+                    data = file.read(Variables.CHUNK_SIZE)
+                Variables.file_sent = True
             print("Paquetes enviados: " + str(i))
         else:
             receive_config()
-            conn, addr = GLOBALES.sock.accept()
+            conn, addr = Variables.sock.accept()
             data = receive(conn, 2048)
             if b'hash' in data:
                 print("Enviando hash")
-                with open(GLOBALES.path_file, "rb") as file:
+                with open(Variables.path_file, "rb") as file:
                     hash = b'hash:' + hashlib.sha1(file.read()).digest()
                     send_config()
                     send(hash)
             elif b'envio' in data:
-                GLOBALES.cantidadClientesListos -= 1
-                if GLOBALES.cantidadClientesListos == 0:
-                    GLOBALES.clientesListos = False
-                    GLOBALES.archivoEnviado = False
+                Variables.cantidadClientesListos -= 1
+                if Variables.cantidadClientesListos == 0:
+                    Variables.clientesListos = False
+                    Variables.file_sent = False
                     configurar = True
                 print(data.decode("utf-8"))
 
 
-iniciar_server()
+start_server()
 

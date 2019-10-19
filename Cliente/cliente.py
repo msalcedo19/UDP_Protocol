@@ -1,95 +1,11 @@
-
-"""
-import socket
-import selectors
-import types
 from tkinter import *
-import struct
 import threading
-import hashlib
-import queuecola = queue.Queue()
-def procesar():
-    return None
-
-
-raiz = Tk()
-raiz.title("Cliente")
-raiz.resizable(0, 0)
-raiz.geometry("400x200")
-estado = StringVar()
-estado.set("Estado de la conexión: Desconectado")
-estadoEnvio = StringVar()
-estadoEnvio.set("Estado del Envio: Desconectado")
-textEstado = Label(raiz, textvariable=estado).place(x=10, y=60)
-lblEstadoEnvio = Label(raiz, textvariable=estadoEnvio).place(x=10, y=100)
-
-
-class Thread(threading.Thread):
-    def __init__(self, num, col):
-        threading.Thread.__init__(self)
-        self.num = num
-        self.cola = col
-
-    def run(self):
-        procesar()
-        sys.stdout.write("Hilo %d\n" % self.num)
-
-
-def enviarNotificacion():
-    t = Thread(1, cola)
-    t.daemon = True
-    t.start()
-    estado.set("Estado de la conexión: Listo")
-    estadoEnvio.set("Estado del Envio: Recibiendo...")
-    botonListo.config(state=DISABLED)
-
-
-botonListo = Button(raiz, text="Listo", command=enviarNotificacion)
-botonListo.config(state=DISABLED)
-botonListo.pack(side="bottom")
-
-
-def ventanaConnect():
-    ventanaConnect = Toplevel()
-    ventanaConnect.title("Conectarse")
-    ventanaConnect.resizable(0, 0)
-
-    def connect():
-        GLOBALES.HOST = '127.0.0.1'
-        GLOBALES.PORT = 65432
-        ventanaConnect.destroy()
-        estado.set("Estado de la conexión: Conectado")
-        estadoEnvio.set("Estado del Envio: No Recibido")
-        botonListo.config(state='normal')
-        boton1.config(state=DISABLED)
-
-    host = StringVar()
-    port = StringVar()
-    hostLabel = Label(ventanaConnect, text="Ingresa el host del servidor").place(x=10, y=10)
-    hostEntry = Entry(ventanaConnect, textvariable=host).place(x=180, y=10)
-    portLabel = Label(ventanaConnect, text="Ingresa el puerto del servidor").place(x=10, y=40)
-    portEntry = Entry(ventanaConnect, textvariable=port).place(x=180, y=40)
-    botonConectar = Button(ventanaConnect, text="Conectar", command=connect)
-    botonConectar.pack(side="bottom")
-    ventanaConnect.geometry("320x100")
-
-
-boton1 = Button(raiz, text="Conectarse", command=ventanaConnect)
-boton1.place(x=10, y=0)
-boton1.config(state='normal')
-
-while True:
-    raiz.update_idletasks()
-    raiz.update()
-    if cola.empty() is not True:
-        cola.get()
-        estado.set("Estado de la conexión: Desconectado")
-        estadoEnvio.set("Estado del Envio: Recibido")
-        boton1.config(state='normal')"""
-
+import queue
 import socket
 import struct
 import hashlib
+import time
+cola = queue.Queue()
 
 
 class GLOBALES:
@@ -100,8 +16,11 @@ class GLOBALES:
     IS_ALL_GROUPS = True
     sock = None
 
+    fileName = ''
+    integrity = ''
 
-def sendConfig():
+
+def send_config():
     GLOBALES.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     GLOBALES.sock.connect((GLOBALES.HOST_SERVER, GLOBALES.PORT_SERVER))
 
@@ -112,7 +31,7 @@ def send(data):
     GLOBALES.sock.sendall(data)
 
 
-def receiveConfig():
+def receive_config():
     GLOBALES.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     GLOBALES.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     if GLOBALES.IS_ALL_GROUPS:
@@ -131,52 +50,111 @@ def receive(chunk_size):
     return data, address
 
 
-def hashVerification(server_hash):
-    with open('./archivos/Datos.txt', 'rb') as file:
+def hash_verification(server_hash):
+    with open(GLOBALES.fileName, 'rb') as file:
         client_hash = hashlib.sha1(file.read()).digest()
         return client_hash == server_hash[5:]
 
-def iniciarCliente():
-    sendConfig()
+
+def iniciar_cliente():
+    send_config()
     send(b'ready')
 
     print("Listo para Leer")
-    receiveConfig()
-    GLOBALES.sock.settimeout(5)
-    fragmentos, address = receive(65535)
-    print("Cantidad de Fragmentos: " + fragmentos.decode('utf-8'))
-    print("Sali de leer")
+    receive_config()
+    info, address = receive(1024)
+    if b'fileName' in info:
+        info_string = info.decode('utf-8')
+        index = info_string.find('fragmentos')
+        GLOBALES.fileName = './archivos/' + info_string[9:index]
+        print("Nombre archivo: " + info_string[9:index])
+        print("Cantidad de Fragmentos: " + info_string[index+11:])
+    print("Sali de leer info")
     i = 0
-    with open('./archivos/Datos.txt', 'wb') as file:
-        data, address = receive(65535)
+    with open(GLOBALES.fileName, 'wb') as file:
+        data, address = receive(65507)
+        GLOBALES.sock.settimeout(5)
         print("Escribiendo")
         while data:
             i += 1
             file.write(data)
             try:
-                data = receive(65535)
+                data, address = receive(65507)
             except socket.error:
                 data = None
         print("Sali de Escribir")
     print("Paquetes recibidos: " + str(i))
 
-    sendConfig()
+    send_config()
     send(b'hash')
 
-    receiveConfig()
+    receive_config()
     GLOBALES.sock.settimeout(5)
     hash, address = receive(4096)
     if b'hash:' in hash:
         print("Enviando respuesta del hash")
-        verification = hashVerification(hash)
+        verification = hash_verification(hash)
         message = b'envio:correcto estado:incorrecto'
+        GLOBALES.integrity = 'incorrecto'
         if verification:
+            GLOBALES.integrity = 'correcto'
             message = b'envio:correcto estado:correcto'
-        sendConfig()
+        send_config()
         send(message)
     print("Termine")
+    cola.put('Listo')
 
 
+def procesar():
+    iniciar_cliente()
 
 
-iniciarCliente()
+raiz = Tk()
+raiz.title("Cliente")
+raiz.resizable(0, 0)
+raiz.geometry("400x200")
+
+estado = StringVar()
+estado.set("Archivo Recibido: Ninguno")
+estadoEnvio = StringVar()
+estadoEnvio.set("Estado del Envio: Desconectado")
+estadoHash = StringVar()
+estadoHash.set("Integridad del archivo: ")
+
+textEstado = Label(raiz, textvariable=estado).place(x=10, y=20)
+lblEstadoEnvio = Label(raiz, textvariable=estadoEnvio).place(x=10, y=60)
+textEstadoHash = Label(raiz, textvariable=estadoHash).place(x=10, y=100)
+
+
+class Thread(threading.Thread):
+    def __init__(self, num, col):
+        threading.Thread.__init__(self)
+        self.num = num
+        self.cola = col
+
+    def run(self):
+        procesar()
+        sys.stdout.write("Hilo %d\n" % self.num)
+
+
+def enviarNotificacion():
+    t = Thread(1, cola)
+    t.daemon = True
+    t.start()
+    estadoEnvio.set("Estado del Envio: Recibiendo...")
+    botonListo.config(state=DISABLED)
+
+
+botonListo = Button(raiz, text="Listo", command=enviarNotificacion)
+botonListo.config(state='normal')
+botonListo.pack(side="bottom")
+
+while True:
+    raiz.update_idletasks()
+    raiz.update()
+    if cola.empty() is not True:
+        cola.get()
+        estado.set("Archivo Recibido: " + GLOBALES.fileName[11:])
+        estadoEnvio.set("Estado del Envio: Recibido")
+        estadoHash.set("Integridad del archivo: " + GLOBALES.integrity)
+        botonListo.config(state='normal')

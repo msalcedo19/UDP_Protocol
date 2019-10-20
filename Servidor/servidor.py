@@ -2,6 +2,10 @@ import socket
 import os
 import math
 import hashlib
+import threading
+import queue
+import time
+cola = queue.Queue()
 
 
 class Variables:
@@ -11,6 +15,10 @@ class Variables:
 
     HOST = '127.0.0.1'
     PORT = 65432
+    HOST_CLIENT = ''
+    PORT_CLIENT = 0
+    set_up = True
+
     sock = None
     CHUNK_SIZE = 1024
     fragmentsQuantity = 0
@@ -21,6 +29,9 @@ class Variables:
     sizeFile = 0
     fileName = ""
     file_sent = False
+
+    indexLogs = 1
+    fileLogs = None
 
 
 def send_config():
@@ -40,7 +51,7 @@ def send(data):
 def receive_config():
     Variables.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     Variables.sock.bind((Variables.HOST, Variables.PORT))
-    Variables.sock.listen()
+    Variables.sock.listen(25)
 
 
 def receive(conn, chunk_size):
@@ -72,14 +83,38 @@ def server_config():
     Variables.CHUNK_SIZE = math.ceil(Variables.sizeFile / Variables.fragmentsQuantity)
 
 
+def send_receive_hash_validation(num, conn, col):
+    i = 0
+    while i < 15:
+        data = receive(conn, 2048)
+        if b'hash' in data:
+            with open(Variables.path_file, "rb") as file:
+                hash = b'hash:' + hashlib.sha1(file.read()).digest()
+                conn.sendall(hash)
+        elif b'envio' in data:
+            col.put(data)
+        i += 1
+
+
+class Thread(threading.Thread):
+    def __init__(self, num, conn, col):
+        threading.Thread.__init__(self)
+        self.num = num
+        self.conn = conn
+        self.col = col
+
+    def run(self):
+        send_receive_hash_validation(self.num, self.conn, self.col)
+
+
 def start_server():
     receive_config()
-    configurar = True
+    numero = 0
     while True:
         if Variables.clientesListos is False:
-            if configurar:
+            if Variables.set_up:
                 server_config()
-                configurar = False
+                Variables.set_up = False
             print("Recibiendo Conexiones")
             conn, addr = Variables.sock.accept()
             data = receive(conn, 2048)
@@ -87,38 +122,56 @@ def start_server():
                 Variables.cantidadClientesListos += 1
             if Variables.cantidadClientesEnviar == Variables.cantidadClientesListos:
                 Variables.clientesListos = True
-                print("Clientes listos")
         elif Variables.file_sent is False:
             send_config()
-            send(str('fileName:' + Variables.fileName + ' fragmentos:' + str(Variables.fragmentsQuantity)).encode('utf-8'))
+            send(str('fileName:' + Variables.fileName + ' fragmentos:'
+                     + str(Variables.fragmentsQuantity) + ' sizeFile:'
+                 + str(Variables.sizeFile)).encode('utf-8'))
 
             i = 0
             with open(Variables.path_file, "rb") as file:
                 data = file.read(Variables.CHUNK_SIZE)
                 print("Enviando...")
+                tiempo_inicial = time.time()
                 while data:
                     i += 1
                     send(data)
                     data = file.read(Variables.CHUNK_SIZE)
                 Variables.file_sent = True
-            print("Paquetes enviados: " + str(i))
+                tiempo_final = time.time()
+
+            # Logs
+            Variables.fileLogs = './logs/Log' + str(Variables.indexLogs) + '.txt'
+            with open(Variables.fileLogs, "a+") as file:
+                file.write('Fecha: ' + time.strftime("%d/%m/%y") + ' Hora: ' + time.strftime("%I:%M:%S"))
+                file.write('\nMultiCastGroup: ' + str(Variables.MCAST_GRP)
+                           + '  MulticastPort: ' + str(Variables.MCAST_PORT))
+                file.write('\nNombre Archivo: ' + Variables.fileName +
+                           ' Tamaño: ' + str(Variables.sizeFile/1024) + ' KB')
+                file.write('\nTamaño de paquete: ' + str(Variables.CHUNK_SIZE) + ' KB  Paquetes Enviados: ' + str(i))
+                file.write('\nTiempo de Transferencia: ' + str(tiempo_final-tiempo_inicial) + ' segundos\n')
+                file.write('\nEstado de los Archivos Enviados:')
         else:
-            receive_config()
-            conn, addr = Variables.sock.accept()
-            data = receive(conn, 2048)
-            if b'hash' in data:
-                print("Enviando hash")
-                with open(Variables.path_file, "rb") as file:
-                    hash = b'hash:' + hashlib.sha1(file.read()).digest()
-                    send_config()
-                    send(hash)
-            elif b'envio' in data:
+            if numero != Variables.cantidadClientesEnviar:
+                print("Recibiendo Conexiones para verificación del hash...")
+                receive_config()
+                conn, addr = Variables.sock.accept()
+                numero += 1
+                t = Thread(numero, conn, cola)
+                t.daemon = True
+                t.start()
+            if cola.empty() is not True:
+                with open(Variables.fileLogs, "a+") as file:
+                    file.write('\n  ' + cola.get().decode('utf-8'))
                 Variables.cantidadClientesListos -= 1
                 if Variables.cantidadClientesListos == 0:
+                    with open(Variables.fileLogs, "a+") as file:
+                        file.write('\n\n--------------------------------------------\n\n')
+                    Variables.cantidadClientesEnviar = 0
                     Variables.clientesListos = False
                     Variables.file_sent = False
-                    configurar = True
-                print(data.decode("utf-8"))
+                    Variables.set_up = True
+                    numero = 0
 
 
 start_server()

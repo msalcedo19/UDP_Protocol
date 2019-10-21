@@ -104,7 +104,7 @@ def server_config():
             print("No existe ese archivo")
     Variables.cantidadClientesEnviar = int(input("Ingrese a cuantos clientes en simultaneo desea enviar el archivo \n"))
 
-    Variables.fragmentsQuantity = math.ceil(Variables.sizeFile / 65000)
+    Variables.fragmentsQuantity = math.ceil(Variables.sizeFile / 64000)
     Variables.CHUNK_SIZE = math.ceil(Variables.sizeFile / Variables.fragmentsQuantity)
 
 

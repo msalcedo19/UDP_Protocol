@@ -5,10 +5,13 @@ import socket
 import struct
 import hashlib
 import time
+# Cola que es utilizada para verificar si el
+# Thread que se lanza para la recepción del archivo ha terminado la transferencia.
 cola = queue.Queue()
 
 
 class Variables:
+    """ Clase que almacena las variables globales del cliente. """
     MCAST_GRP = '224.1.1.1'
     MCAST_PORT = 5007
     HOST_SERVER = '127.0.0.1'
@@ -25,15 +28,23 @@ class Variables:
 
 
 def send_config():
+    """ Configura el socket para el envio de paquetes hacia el servidor."""
     Variables.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     Variables.sock.connect((Variables.HOST_SERVER, Variables.PORT_SERVER))
 
 
 def send(data):
+    """Envia los datos pasados por parametro al servidor configurado anteriormente.
+
+    Parámetros:
+    data -- datos a transmitir
+
+    """
     Variables.sock.sendall(data)
 
 
 def receive_config():
+    """Configura el socket para recibir información de parte del servidor."""
     Variables.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     Variables.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     if Variables.IS_ALL_GROUPS:
@@ -48,17 +59,44 @@ def receive_config():
 
 
 def receive(chunk_size):
+    """Recibe los datos enviados desde el servidor.
+
+    Retorna los datos que enviaron desde el servidor y la dirección de donde provienen.
+
+    Parámetros:
+    chunck_size -- Cantidad de datos que leera del buffer.
+
+    """
     data, address = Variables.sock.recvfrom(chunk_size)
     return data, address
 
 
 def hash_verification(server_hash):
+    """Realiza la verificación del hash proveniente del servidor y el hash realizado por el cliente
+        del archivo transmitido.
+
+    Retorna True si son iguales y False de lo contrario.
+
+    Parámetros:
+    server_hash -- Hash enviado desde el servidor.
+
+    """
     with open(Variables.fileName, 'rb') as file:
         client_hash = hashlib.sha1(file.read()).digest()
         return client_hash == server_hash[5:]
 
 
 def start_client():
+    """ Lanza el cliente.
+
+    Empieza tratando de hacer conexión con el servidor. Cuando la conexión es exitosa notifica al servidor
+        que esta listo para la transmisión.
+    Luego recibe la información sobre la transferencia (Nombre archivo, Tamaño del archivo,
+        Cantidad de Fragmentos a enviar, etc...).
+    Continua recibiendo los datos provenientes del servidor.
+    Por último, hace la validación del hash con la información enviada por el servidor y le envia la respuesta.
+
+    """
     wait_time = 2
     while Variables.conn_error:
         try:
@@ -82,7 +120,7 @@ def start_client():
     with open(Variables.fileName, 'wb') as file:
         data, address = receive(65507)
         tiempo_inicial = time.time()
-        Variables.sock.settimeout(5)
+        Variables.sock.settimeout(10)
         print("Recibiendo...")
         while data:
             i += 1
@@ -134,6 +172,7 @@ def start_client():
 
 
 def procesar():
+    """ Inicia la ejecución del cliente. """
     start_client()
 
 
@@ -155,16 +194,27 @@ textEstadoHash = Label(raiz, textvariable=estadoHash).place(x=10, y=100)
 
 
 class Thread(threading.Thread):
+    """ Clase utilizada para la creación de los Threads."""
     def __init__(self, num, col):
+        """Configura el Thread que se va a lanzar.
+
+        Parámetros:
+        num -- Número del socket que lo identifica.
+        col -- Cola que es utilizada para verificar si el Thread que se lanza para la recepción
+            del archivo ha terminado la transferencia.
+
+        """
         threading.Thread.__init__(self)
         self.num = num
         self.cola = col
 
     def run(self):
+        """ Lanza el Thread. """
         procesar()
 
 
 def enviarNotificacion():
+    """ Crea el Thread que se hara cargo de la transferencia del archivo y lo lanza. """
     t = Thread(1, cola)
     t.daemon = True
     t.start()

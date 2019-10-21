@@ -5,10 +5,12 @@ import hashlib
 import threading
 import queue
 import time
+# Cola Utilizada para almacenar las respuesta de la verificación del hash proveniente de los clientes.
 cola = queue.Queue()
 
 
 class Variables:
+    """ Clase que almacena las variables globales del servidor."""
     cantidadClientesListos = 0
     cantidadClientesEnviar = 0
     clientesListos = False
@@ -35,30 +37,53 @@ class Variables:
 
 
 def send_config():
-    # regarding socket.IP_MULTICAST_TTL
-    # ---------------------------------
-    # for all packets sent, after two hops on the network the packet will not
-    # be re-sent/broadcast (see https://www.tldp.org/HOWTO/Multicast-HOWTO-6.html)
-    MULTICAST_TTL = 2
+    """ Configura el socket para el envio de paquetes."""
+    MULTICAST_TTL = 255
     Variables.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     Variables.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, MULTICAST_TTL)
 
 
 def send(data):
+    """Envia los datos pasados por parametro al multicast configurado anteriormente.
+
+    Parámetros:
+    data -- datos a transmitir
+
+    """
     Variables.sock.sendto(data, (Variables.MCAST_GRP, Variables.MCAST_PORT))
 
 
 def receive_config():
+    """Configura el socket para recibir información de los clientes.
+
+    Puede escuchar maximo 25 conexiones.
+
+    """
     Variables.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     Variables.sock.bind((Variables.HOST, Variables.PORT))
     Variables.sock.listen(25)
 
 
 def receive(conn, chunk_size):
+    """Recibe los datos enviados desde algún cliente.
+
+    Retorna los datos que envio el cliente.
+
+    Parámetros:
+    conn -- Socket de comunicación con el cliente.
+    chunck_size -- Cantidad de datos que leera del buffer.
+
+    """
     return conn.recv(chunk_size)
 
 
 def server_config():
+    """Configura el servidor.
+
+    Configura que texto se va a enviar, la cantidad de clientes a los cuales se le enviaran los datos simultaneamente
+    y la cantidad de fragmentos a enviar.
+
+    """
     eligio = False
     while eligio is not True:
         print("Ingrese el número del archivo que desea enviar: ")
@@ -83,7 +108,14 @@ def server_config():
     Variables.CHUNK_SIZE = math.ceil(Variables.sizeFile / Variables.fragmentsQuantity)
 
 
-def send_receive_hash_validation(num, conn, col):
+def send_receive_hash_validation(conn, col):
+    """Envia el hash del archivo al cliente y recibe la respuesta del mismo.
+
+    Parámetros:
+    conn -- Socket de comunicación con el cliente.
+    col -- cola dónde se almacena la respuesta del cliente.
+
+    """
     i = 0
     while i < 15:
         data = receive(conn, 2048)
@@ -97,17 +129,34 @@ def send_receive_hash_validation(num, conn, col):
 
 
 class Thread(threading.Thread):
-    def __init__(self, num, conn, col):
+    """ Clase utilizada para la creación de los Threads."""
+
+    def __init__(self, conn, col):
+        """Configura el Thread que se va a lanzar.
+
+        Parámetros:
+        conn -- Socket de comunicación con el cliente.
+        col -- cola dónde se almacena la respuesta del cliente.
+
+        """
         threading.Thread.__init__(self)
-        self.num = num
         self.conn = conn
         self.col = col
 
     def run(self):
-        send_receive_hash_validation(self.num, self.conn, self.col)
+        """ Lanza el Thread. """
+        send_receive_hash_validation(self.conn, self.col)
 
 
 def start_server():
+    """Inicia el server.
+
+    Empieza recibiendo las conexiones de los clientes.
+    Cuando ya los clientes se encuentran listos para recibir se empieza a transmitir el archivo.
+    Por último el servidor crea un socket para cada cliente que ha recibido el archivo para hacer la verificación
+        del hash. Cuando se hace este proceso con todos los clientes el servidor reinicia la configuración
+
+    """
     receive_config()
     numero = 0
     while True:
@@ -157,7 +206,7 @@ def start_server():
                 receive_config()
                 conn, addr = Variables.sock.accept()
                 numero += 1
-                t = Thread(numero, conn, cola)
+                t = Thread(conn, cola)
                 t.daemon = True
                 t.start()
             if cola.empty() is not True:

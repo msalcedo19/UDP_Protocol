@@ -27,6 +27,23 @@ class Variables:
     indexLogs = 1
 
 
+raiz = Tk()
+raiz.title("Cliente")
+raiz.resizable(0, 0)
+raiz.geometry("400x200")
+
+estado = StringVar()
+estado.set("Archivo Recibido: Ninguno")
+estadoConexion = StringVar()
+estadoConexion.set("Estado de la conexión: Desconectado")
+estadoHash = StringVar()
+estadoHash.set("Integridad del archivo: Ninguno")
+
+textEstado = Label(raiz, textvariable=estado).place(x=10, y=20)
+lblEstadoEnvio = Label(raiz, textvariable=estadoConexion).place(x=10, y=60)
+textEstadoHash = Label(raiz, textvariable=estadoHash).place(x=10, y=100)
+
+
 def send_config():
     """ Configura el socket para el envio de paquetes hacia el servidor."""
     Variables.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -106,7 +123,7 @@ def start_client():
         except socket.error:
             time.sleep(wait_time)
             wait_time *= 2
-
+    cola.put('conectado')
     Variables.conn_error = True
     receive_config()
     info, address = receive(1024)
@@ -176,23 +193,6 @@ def procesar():
     start_client()
 
 
-raiz = Tk()
-raiz.title("Cliente")
-raiz.resizable(0, 0)
-raiz.geometry("400x200")
-
-estado = StringVar()
-estado.set("Archivo Recibido: Ninguno")
-estadoEnvio = StringVar()
-estadoEnvio.set("Estado del Envio: Desconectado")
-estadoHash = StringVar()
-estadoHash.set("Integridad del archivo: ")
-
-textEstado = Label(raiz, textvariable=estado).place(x=10, y=20)
-lblEstadoEnvio = Label(raiz, textvariable=estadoEnvio).place(x=10, y=60)
-textEstadoHash = Label(raiz, textvariable=estadoHash).place(x=10, y=100)
-
-
 class Thread(threading.Thread):
     """ Clase utilizada para la creación de los Threads."""
     def __init__(self, num, col):
@@ -218,7 +218,7 @@ def enviarNotificacion():
     t = Thread(1, cola)
     t.daemon = True
     t.start()
-    estadoEnvio.set("Estado del Envio: Recibiendo...")
+    estadoConexion.set("Estado de la conexión: Conectando...")
     botonListo.config(state=DISABLED)
 
 
@@ -227,11 +227,20 @@ botonListo.config(state='normal')
 botonListo.pack(side="bottom")
 
 while True:
-    raiz.update_idletasks()
-    raiz.update()
-    if cola.empty() is not True:
-        cola.get()
-        estado.set("Archivo Recibido: " + Variables.fileName[11:])
-        estadoEnvio.set("Estado del Envio: Recibido")
-        estadoHash.set("Integridad del archivo: " + Variables.integrity)
-        botonListo.config(state='normal')
+    try:
+        raiz.update_idletasks()
+        raiz.update()
+        if cola.empty() is not True:
+            mensaje = cola.get()
+            if 'conectado' in mensaje:
+                estadoConexion.set("Estado de la conexión: Conectado y Recibiendo...")
+            else:
+                estado.set("Archivo Recibido: " + Variables.fileName[11:])
+                estadoConexion.set("Estado del Envio: Recibido")
+                estadoHash.set("Integridad del archivo: " + Variables.integrity)
+                botonListo.config(state='normal')
+                estadoConexion.set("Estado de la conexión: Desconectado")
+    except Exception as e:
+        print(e)
+        break
+
